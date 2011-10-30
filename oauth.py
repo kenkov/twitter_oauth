@@ -21,18 +21,17 @@ def parameter_urlencode(param):
     '''
     return dict(map(lambda pair: map(lambda x:urllib.quote(x, ""), pair), param.items()))
 
-#def concat_param(pair):
-#    return '='.join(pair)
-    
 def concat_header(pair):
     return '%s="%s"' % (pair[0], pair[1])
 
-
 def oauth_header(param):
+    '''
+    param :: dictionary
+    '''
     return 'OAuth %s' % ', '.join(map(concat_header, sorted(param.items())))
 
 # OAuthリクエストの作成
-def oauth_request(oauth, url, method, param, data, content_type='application/x-www-form-urlencoded'):
+def oauth_request(oauth, url, method, data, content_type='application/x-www-form-urlencoded'):
     '''
     oauth :: OAuth
     url :: Unicode
@@ -43,14 +42,27 @@ def oauth_request(oauth, url, method, param, data, content_type='application/x-w
     signatureの作成にはdataを追加して作成する
     URLにはparamをクエリとして追加する
     POSTデータにはdataを使う
+
+    ポイントとしては
+    GETの時はパラメータをクエリとしてつける。
+    あと、シグネチャの生成にパラメータを使う。
+    他の場所（ヘッダとかデータとか）にはいらない
+    
+    POSTの時はシグネチャの生成にパラメータを使う。
+    あと、データにも追加しておく
+    他の場所（ヘッダとかクエリとか）には必要ない
+
+    GET  ... param, data
+    POST ... data
     '''
+
     # 乱数の生成
     nonce = str(random.getrandbits(64))
     #システム時間の取得
     unix_time = str(int(time.time()))
-    #データをエンコードする
+    #data のデータをエンコードする
     param_sub = parameter_urlencode(data)
-    param_sub.update(parameter_urlencode(param))
+    #param_sub.update(parameter_urlencode(param))
     #パラメータ(エンコードしたもの)
     oauth_param = parameter_urlencode(
                   {'oauth_consumer_key': oauth.consumer_key,
@@ -66,32 +78,21 @@ def oauth_request(oauth, url, method, param, data, content_type='application/x-w
                                    oauth.consumer_secret,
                                    oauth.oauth_token_secret,
                                    param_sub)
-    #url_param = {}
-    #url_param.update(param)
-    #url_param.update({'oauth_signature':urllib.quote(sign, "")})
-
-    #oauth_url = url + "?" + '&'.join(map(concat_param, sorted(url_param.items())))
-    #url_param = urllib.urlencode(param)
-    #if url_param != '':
-    #    oauth_url = "%s?%s" % (url, urllib.urlencode(param))
-    #else:
-    #    oauth_url = url
-    
-    url_param = urllib.urlencode(param)
-    oauth_url = "%s?%s" % (url, url_param) if url_param else url
-    #oauth_url = url
+    # GET かPOST かによってURL にクエリをつける
+    if method == 'GET':
+        url_param = urllib.urlencode(data)
+        oauth_url = "%s?%s" % (url, url_param)
+    elif method == 'POST':
+        oauth_url = url
+    # リクエストを作成する
     req = urllib2.Request(oauth_url)
-
     # Requestにヘッダを付ける
     header_dict = {}
     header_dict.update(oauth_param)
-    #header_dict.update(param_sub)
     header_dict.update({'oauth_signature': urllib.quote(sign, "")})
     req.add_header('Authorization', oauth_header(header_dict))
-
-
     # Requestにデータをつける
-    if data:
+    if method == 'POST':
         data_str = urllib.urlencode(data)
         req.add_data(data_str)
         req.add_header('Content-Type', content_type)

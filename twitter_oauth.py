@@ -24,7 +24,6 @@ _SEARCH_USER_URL = 'http://api.twitter.com/1/users/search.json'
 _SHOW_USER_URL = 'http://api.twitter.com/1/users/show/%s.json'
 _SEARCH_URL = 'http://search.twitter.com/search.json'
 
-
 _CREATE_FAVORITE_URL = 'http://api.twitter.com/1/favorites/create/%s.json'
 _DESTROY_FAVORITE_URL = 'http://api.twitter.com/1/favorites/destroy/%s.json'
 _SHOW_FAVORITE_URL = 'http://api.twitter.com/1/favorites/%s.json'
@@ -35,7 +34,6 @@ class Api:
     def __init__(self, consumer_key, consumer_secret, oauth_token, oauth_token_secret):
         self.api_oauth = oauth.OAuth(consumer_key, consumer_secret, oauth_token, oauth_token_secret)
         self.json_parser = JsonParser()
-
 
     def _type_parser(self, content, typ):
         if typ == 'status':
@@ -48,10 +46,9 @@ class Api:
             return self.json_parser.create_user_object(json.loads(content))
         elif typ == 'search_info':
             return self.json_parser.create_search_info(json.loads(content))
-        
 
     def _get_method(self, url, param, typ):
-        req = oauth.oauth_request(self.api_oauth, url , 'GET', self._make_param_dict(param), {})
+        req = oauth.oauth_request(self.api_oauth, url , 'GET', self._make_param_dict(param))
         try:
             #print 'DATA: %s' % req.get_data()
             #print 'METHOD: %s' % req.get_method()
@@ -66,7 +63,7 @@ class Api:
             print e.read()
 
     def _post_method(self, url, param, typ, content_type='application/x-www-form-urlencoded'):
-        req = oauth.oauth_request(self.api_oauth, url, 'POST', {}, data=self._make_param_dict(param), content_type=content_type)
+        req = oauth.oauth_request(self.api_oauth, url, 'POST', self._make_param_dict(param), content_type=content_type)
         try:
             #print 'DATA: %s' % req.get_data()
             #print 'METHOD: %s' % req.get_method()
@@ -97,7 +94,6 @@ class Api:
                 url_param_dict.update({key: item})
         return self._str_dict(url_param_dict)
 
-
     
     def post_update(self, status, in_reply_to_status_id=None, lat=None, long=None,
                     place_id=None, display_coordinates=None, source=None):
@@ -121,10 +117,9 @@ class Api:
         print _RETWEET_URL % id
         return self._post_method(_RETWEET_URL % id, arg_dict, 'status')
 
-
     #def post_update_with_media(self, status, media_url, in_reply_to_status_id=None, lat=None, long=None,
     #                            place_id=None, display_coordinates=None, source=None):
-    # 
+    #
     #    encode_status = status.encode('utf-8')
     #    media_url = media_url.encode('utf-8')
     #    arg_dict = {'status': encode_status,
@@ -243,13 +238,3 @@ class Api:
         arg_dict = {'since_id':since_id, 'max_id':max_id, 'count':count, 'page':page,
                     'trim_user':trim_user, 'include_entities':include_entities}
         return self._get_method(_RETWEETED_BY_ME, arg_dict, 'status_list')
-
-# ポイントとしては
-# GETの時はパラメータをクエリとしてつける。
-# あと、シグネチャの生成にパラメータを使う。
-# 他の場所（ヘッダとかデータとか）にはいらない
-
-# POSTの時はシグネチャの生成にパラメータを使う。
-# あと、データにも追加しておく
-# 他の場所（ヘッダとかクエリとか）には必要ない
-
