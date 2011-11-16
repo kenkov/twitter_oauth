@@ -3,7 +3,7 @@
 
 import datetime
 
-class JsonParser:
+class JsonParser(object):
     def __init__(self):
         pass
 
@@ -15,7 +15,6 @@ class JsonParser:
                     return res[value]
             else:
                 return None
-
 
     def create_search_info(self, search_dict):
         '''
@@ -38,12 +37,10 @@ class JsonParser:
                           self.set_value(res,'to_user'),self.set_value(res,'to_user_id'),self.set_value(res,'profile_image_url'),
                           self.set_value(res,'geo'), self.set_value(res,'iso_language_code'), self.set_value(res,'source')) for res in results]
 
-
     def create_status_object(self,status_dict):
         '''
         >>> create_status_object(json.loads(json_str))
         '''
-
         status_obj = Status(created_at=self.set_value(status_dict, 'created_at'), 
                             id=self.set_value(status_dict, 'id'), 
                             text=self.set_value(status_dict, 'text'),
@@ -58,14 +55,10 @@ class JsonParser:
 
         return status_obj
 
-
-
-
     def create_user_object(self, user_dict):
         '''
         >>> create_user_object(json.loads(json_str))
         '''
-    
         user_obj = User(id=self.set_value(user_dict, 'id'), name=self.set_value(user_dict, 'name'),
                         screen_name=self.set_value(user_dict, 'screen_name'), 
                         created_at=self.set_value(user_dict, 'created_at'),
@@ -96,22 +89,23 @@ class JsonParser:
 
         return user_obj
 
+    def create_status_object_list(self, status_list):
+        """ return genexp """
+        return (self.create_status_object(i) for i in status_list)
+
 
     def create_user_object_list(self, user_list):
         '''
         Create a User object list from xml.getElementsByTagName('user')
+        return genexp
         '''
-        return [self.create_user_object(i) for i in user_list]
+        return (self.create_user_object(i) for i in user_list)
 
-    def create_status_object_list(self, status_list):
-        return [self.create_status_object(i) for i in status_list]
-
-    
-class SearchInfo:
+class SearchInfo(object):
     def __init__(self, results, max_id, since_id,
                  refresh_url, next_page, results_per_page,
                  page, completed_in, query):
-    
+
         self.results = results
         self.max_id = max_id
         self.since_id = since_id
@@ -122,8 +116,7 @@ class SearchInfo:
         self.completed_in = completed_in
         self.query = query
 
-
-class TweetInfo:
+class TweetInfo(object):
     def __init__(self, created_at, id, text,
                  from_user, from_user_id, to_user,
                  to_user_id, profile_image_url, geo,
@@ -141,23 +134,15 @@ class TweetInfo:
         self.iso_language_code = iso_language_code
         self.source = source
 
-
-
     def _create_datetime_obj(self, utc_datetime):
         '''
         Create datetime object
-        
-        
         Thu, 14 Oct 2010 08:35:44 +0000 <type 'str'>
-            
         input : utc_datetime = u'Sun Jul 25 14:12:06 +0000 2010'
         return : str(datetime.datetime(2010,07,26,23,12)
         '''
         month_str = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 
                      'Jul':7, 'Aug':8, 'Sep':9, 'Oct':10, 'Nov':11, 'Dec':12}
-        
-        
-
 
         sub = utc_datetime.split()
         utc_datetime_list = [sub[0][:-1], sub[2], sub[1], sub[4], sub[5], sub[3]]
@@ -169,9 +154,7 @@ class TweetInfo:
                                     int(utc_time[0]),
                                     int(utc_time[1]))
 
-                                              
         return utc_now
-
 
     def get_created_at_from_now(self):
         '''
@@ -179,13 +162,11 @@ class TweetInfo:
         '''
 
         t = datetime.datetime.utcnow() - self._create_datetime_obj(self.created_at)
-        
         day = t.days
         sec = t.seconds
         min = sec / 60
         hour = min / 60
-        
-        
+
         if t.days >= 1:
             return u'%s days ago' % str(day)
         elif hour >= 1:
@@ -194,31 +175,20 @@ class TweetInfo:
             return u'%s minutes ago' % (str(min))
         else:
             return u'%s seconds ago' % (str(sec))
-        
-
-        
-
-
 
     def get_created_at_in_utc(self):
         '''
         return datetime.datetime object in UTC
         '''
-
         return self._create_datetime_obj(self.created_at)
-    
+
     def get_created_at_in_jsp(self):
         '''
         return datetime.datetime object in JSP
         '''
-
         return self._create_datetime_obj(self.created_at) + datetime.timedelta(hours=9)
 
-    
-
-
-
-class Status:
+class Status(object):
     '''
     A class representing a status.
 
@@ -253,7 +223,6 @@ class Status:
         '''
         Status class initializer.
         '''
-        
         self.created_at = created_at
         self.id = id
         self.text = text
@@ -269,15 +238,12 @@ class Status:
     def _create_datetime_obj(self, utc_datetime):
         '''
         Create datetime object
-        
-        
+
         input : utc_datetime = u'Sun Jul 25 14:12:06 +0000 2010'
         return : str(datetime.datetime(2010,07,26,23,12)
         '''
         month_str = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 
                      'Jul':7, 'Aug':8, 'Sep':9, 'Oct':10, 'Nov':11, 'Dec':12}
-        
-        
         utc_datetime_list = utc_datetime.split()
         utc_time = utc_datetime_list[3].split(':')
 
@@ -286,24 +252,18 @@ class Status:
                                     int(utc_datetime_list[2]),
                                     int(utc_time[0]),
                                     int(utc_time[1]))
-
-                                              
         return utc_now
-
 
     def get_created_at_from_now(self):
         '''
         When created from now
         '''
-
         t = datetime.datetime.utcnow() - self._create_datetime_obj(self.created_at)
-        
         day = t.days
         sec = t.seconds
         min = sec / 60
         hour = min / 60
-        
-        
+
         if t.days >= 1:
             return u'%s days ago' % str(day)
         elif hour >= 1:
@@ -312,11 +272,6 @@ class Status:
             return u'%s minutes ago' % (str(min))
         else:
             return u'%s seconds ago' % (str(sec))
-        
-
-        
-
-
 
     def get_created_at_in_utc(self):
         '''
@@ -324,7 +279,7 @@ class Status:
         '''
 
         return self._create_datetime_obj(self.created_at)
-    
+
     def get_created_at_in_jsp(self):
         '''
         return datetime.datetime object in JSP
@@ -332,7 +287,7 @@ class Status:
 
         return self._create_datetime_obj(self.created_at) + datetime.timedelta(hours=9)
 
-class User:
+class User(object):
     '''
     A class representing User.
 
@@ -366,7 +321,6 @@ class User:
         user.notifications
         user.following
         user.contributors_enabled
-
 
     The Status class have next methods:
 
@@ -420,15 +374,12 @@ class User:
     def _create_datetime_obj(self, utc_datetime):
         '''
         Create a datetime object.
-        
-        
+
         input : utc_datetime = u'Sun Jul 25 14:12:06 +0000 2010'
         return : str(datetime.datetime(2010,07,26,23,12)
         '''
         month_str = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 
                      'Jul':7, 'Aug':8, 'Sep':9, 'Oct':10, 'Nov':11, 'Dec':12}
-        
-        
         utc_datetime_list = utc_datetime.split()
         utc_time = utc_datetime_list[3].split(':')
 
@@ -437,66 +388,16 @@ class User:
                                     int(utc_datetime_list[2]),
                                     int(utc_time[0]),
                                     int(utc_time[1]))
-
-                                              
         return utc_now
-
-
-    # def get_created_at_from_now(self):
-    #     '''
-    #     return datetime.timedelta object
-        
-    #     使用例
-    #     t = get_created_at_from_now()
-    #     [t.days, t.seconds]
-    #     '''
-    #     t = datetime.datetime.utcnow() - self._create_datetime_obj(self.created_at)
-    #     #return [t.days, t.seconds]
-    #     return t
-    
 
     def get_created_at_in_utc(self):
         '''
         return datetime.datetime object in UTC
         '''
         return self._create_datetime_obj(self.created_at)
-    
+
     def get_created_at_in_jsp(self):
         '''
         return datetime.datetime object in JSP
         '''
         return self._create_datetime_obj(self.created_at) + datetime.timedelta(hours=9)
-
-    
-class TwitterError(Exception):
-    '''
-    A class representing twitter error.
-
-    A TwitterError is raised when a status code is not 200 returned from Twitter.
-    '''
-    
-    def __init__(self, status=None, content=None):
-        '''
-        res : status code
-        content : XML
-        '''
-        Exception.__init__(self)
-        
-        self.status = status
-        self.content = content
-
-    def get_response(self):
-        '''
-        Return status code
-        '''
-
-        return self.status
-		
-    def get_content(self):
-        '''
-        Return XML.
-        '''
-
-    def __str__(self):
-        return 'status_code:%s' % self.status
-

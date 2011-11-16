@@ -2,9 +2,9 @@
 # coding:utf-8
 
 
-from twitter_parser import JsonParser, SearchInfo, TweetInfo, Status, User, TwitterError 
+from twitter_parser import JsonParser, SearchInfo, TweetInfo, Status, User
 import oauth
-
+import traceback
 import urllib, urllib2
 #import simplejson as json
 import json
@@ -30,25 +30,41 @@ _SHOW_FAVORITE_URL = 'http://api.twitter.com/1/favorites/%s.json'
 
 _RETWEETED_BY_ME = 'http://api.twitter.com/1/statuses/retweeted_by_me.json' 
 
-class Api:
+# stream API
+_USER_STREAM_URL = 'https://userstream.twitter.com/2/user.json'
+
+class Api(object):
     def __init__(self, consumer_key, consumer_secret, oauth_token, oauth_token_secret):
-        self.api_oauth = oauth.OAuth(consumer_key, consumer_secret, oauth_token, oauth_token_secret)
-        self.json_parser = JsonParser()
+        self._api_oauth = oauth.OAuth(consumer_key, consumer_secret, oauth_token, oauth_token_secret)
+        self._json_parser = JsonParser()
+
+    def _get_api_oauth(self):
+        return self._api_oauth
+
+    def _get_json_parser(self):
+        return self._json_parser
+
+    api_oauth = property(_get_api_oauth)
+    json_parser = property(_get_json_parser)
 
     def _type_parser(self, content, typ):
         if typ == 'status':
-            return self.json_parser.create_status_object(json.loads(content))
+            return self._json_parser.create_status_object(json.loads(content))
         elif typ == 'status_list':
-            return self.json_parser.create_status_object_list(json.loads(content))
+            return self._json_parser.create_status_object_list(json.loads(content))
         elif typ == 'user_list':
-            return self.json_parser.create_user_object_list(json.loads(content))
+            return self._json_parser.create_user_object_list(json.loads(content))
         elif typ == 'user':
-            return self.json_parser.create_user_object(json.loads(content))
+            return self._json_parser.create_user_object(json.loads(content))
         elif typ == 'search_info':
-            return self.json_parser.create_search_info(json.loads(content))
+            return self._json_parser.create_search_info(json.loads(content))
 
-    def _get_method(self, url, param, typ):
-        req = oauth.oauth_request(self.api_oauth, url , 'GET', self._make_param_dict(param))
+    def _get_method(self, url, param, typ, authentification=True):
+        req = oauth.oauth_request(oauth=self._api_oauth,
+                                  url=url,
+                                  method='GET',
+                                  params=param,
+                                  authentification=authentification)
         try:
             #print 'DATA: %s' % req.get_data()
             #print 'METHOD: %s' % req.get_method()
@@ -62,8 +78,13 @@ class Api:
         except urllib2.HTTPError, e:
             print e.read()
 
-    def _post_method(self, url, param, typ, content_type='application/x-www-form-urlencoded'):
-        req = oauth.oauth_request(self.api_oauth, url, 'POST', self._make_param_dict(param), content_type=content_type)
+    def _post_method(self, url, param, typ, authentification=True, content_type='application/x-www-form-urlencoded'):
+        req = oauth.oauth_request(oauth=self._api_oauth,
+                                  url=url,
+                                  method='POST',
+                                  params=param,
+                                  authentification=authentification,
+                                  content_type=content_type)
         try:
             #print 'DATA: %s' % req.get_data()
             #print 'METHOD: %s' % req.get_method()
@@ -77,31 +98,12 @@ class Api:
             print "Error: %s" % e
             print e.read()
 
-    def _str_dict(self, ds):
-        '''
-        辞書の内容をstrに変換する
-        dsにUnicodeがくるとエラーになるので注意
-        '''
-        rds = {}
-        for (key, item) in ds.items():
-            rds[key] = str(item)
-        return rds
-
-    def _make_param_dict(self, arg_dict):
-        url_param_dict = {}
-        for (key, item) in arg_dict.iteritems():
-            if item:
-                url_param_dict.update({key: item})
-        return self._str_dict(url_param_dict)
-
-    
     def post_update(self, status, in_reply_to_status_id=None, lat=None, long=None,
                     place_id=None, display_coordinates=None, source=None):
         '''
         Post your tweet.
         '''
-
-        encode_status = status.encode('utf-8')
+        encode_status = status
         arg_dict = {'status': encode_status,
                     'in_reply_to_status_id':in_reply_to_status_id,
                     'lat':lat,
@@ -117,20 +119,19 @@ class Api:
         print _RETWEET_URL % id
         return self._post_method(_RETWEET_URL % id, arg_dict, 'status')
 
-    #def post_update_with_media(self, status, media_url, in_reply_to_status_id=None, lat=None, long=None,
-    #                            place_id=None, display_coordinates=None, source=None):
-    #
-    #    encode_status = status.encode('utf-8')
-    #    media_url = media_url.encode('utf-8')
-    #    arg_dict = {'status': encode_status,
-    #                'media[]': [media_url],
-    #                'in_reply_to_status_id':in_reply_to_status_id,
-    #                'long':long,
-    #                'place_id':place_id,
-    #                'display_coordinates':display_coordinates,
-    #                'source':source}
-    # 
-    #    return self._post_method(_UPDATE_WITH_MEDIA_URL, arg_dict, 'status', content_type='form-data')
+    def post_update_with_media(self, status, media_url, in_reply_to_status_id=None, lat=None, long=None,
+                                place_id=None, display_coordinates=None):
+    
+        encode_status = status
+        media_url = media_url
+        media = open(media_url, 'rb').read()
+        arg_dict = {'status': encode_status,
+                    'media[]': (media_url, media),
+                    'in_reply_to_status_id':in_reply_to_status_id,
+                    'long':long,
+                    'place_id':place_id,
+                    'display_coordinates':display_coordinates}
+        return self._post_method(_UPDATE_WITH_MEDIA_URL, arg_dict, 'status', content_type='multipart/form-data')
 
     def get_user_timeline(self, id=None, since_id=None, max_id=None,
                              count=None, page=None):
@@ -238,3 +239,77 @@ class Api:
         arg_dict = {'since_id':since_id, 'max_id':max_id, 'count':count, 'page':page,
                     'trim_user':trim_user, 'include_entities':include_entities}
         return self._get_method(_RETWEETED_BY_ME, arg_dict, 'status_list')
+
+    def user_stream(self):
+        def get_user_stream():
+            req = oauth.oauth_request(oauth=self._api_oauth, url=_USER_STREAM_URL, method='GET', params={}, authentification=True)
+            return urllib2.urlopen(req, timeout=90.0)
+        # コネクションする
+        stream = get_user_stream()
+        # はじめのfollow 情報はすてる
+        while True:
+            response = ""
+            while True:
+                c = stream.read(1)
+                if c == '\n':
+                    break
+                response += c
+            break
+        # statu を取得する
+        while True:
+            response = ""
+            while True:
+                # 1 byte をread する
+                c = stream.read(1)
+                # 改行だったらbreak する
+                if c == '\n':
+                    break
+                # 改行でなかったらresponse に繋げる
+                else:
+                    response += c
+            # response をstrip する
+            strip_res = response.strip()
+            # コネクションを確立しておくための
+            # white space はすてる
+            if strip_res == '':
+                print "WHITE SPACE"
+                continue
+            try:
+                status = self._json_parser.create_status_object(json.loads(strip_res))
+                yield status
+            except:
+                #
+                # ここは対処をする
+                # dev.twitter.com のドキュメントを読む
+                #
+                print strip_res
+
+class TwitterError(Exception):
+    '''
+    A class representing twitter error.
+
+    A TwitterError is raised when a status code is not 200 returned from Twitter.
+    '''
+    def __init__(self, status=None, content=None):
+        '''
+        res : status code
+        content : XML
+        '''
+        Exception.__init__(self)
+
+        self._status = status
+        self._content = content
+
+    def _get_response(self):
+        ''' Return status code '''
+        return self.status
+
+    def _get_content(self):
+        ''' Return XML '''
+        return self.content
+
+    status = property(_get_response)
+    content = property(_get_content)
+
+    def __str__(self):
+        return 'status_code:%s' % self.status

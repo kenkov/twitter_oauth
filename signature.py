@@ -4,8 +4,6 @@
 import urllib, urllib2
 import hmac, hashlib
 
-        
-
 def make_signature_base_string(url, method, parameter):
     '''
         url :: Unicode
@@ -18,8 +16,6 @@ def make_signature_base_string(url, method, parameter):
     str3 = str1 + '&' + str2_sub
     #print str3
     return str3
-
-
 
 def make_signature(url, method, consumer_secret, access_token_secret, parameter):
     # make key
