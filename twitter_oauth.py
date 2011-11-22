@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # coding:utf-8
 
-
 from twitter_parser import JsonParser, SearchInfo, TweetInfo, Status, User
 import oauth
 import traceback
@@ -272,7 +271,7 @@ class Api(object):
             # コネクションを確立しておくための
             # white space はすてる
             if strip_res == '':
-                print "WHITE SPACE"
+                #print "WHITE SPACE"
                 continue
             try:
                 status = self._json_parser.create_status_object(json.loads(strip_res))
@@ -282,7 +281,12 @@ class Api(object):
                 # ここは対処をする
                 # dev.twitter.com のドキュメントを読む
                 #
-                print strip_res
+                #
+                # event, delete, ...
+                # などに対処する必要がある．
+                #
+                #print strip_res
+                pass
 
 class TwitterError(Exception):
     '''

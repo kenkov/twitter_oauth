@@ -17,7 +17,6 @@ def _make_signature_base_string(url, method, parameter):
     str2 = '&'.join(map(lambda t: t[0] + '=' + t[1], sorted(parameter.items())))
     str2_sub = urllib.quote(str2, "")
     str3 = str1 + '&' + str2_sub
-    #print str3
     return str3
 
 def _make_signature(url, method, consumer_secret, access_token_secret, parameter):
@@ -145,7 +144,6 @@ def oauth_request(oauth, url, method, params={}, authentification=False, content
         else:
             # データの作成
             data = [key + '=' + value for (key, value) in new_params.iteritems()]
-            #print data
             # ヘッダにデータを追加する
             req.add_data('&'.join(data))
             # content-type ヘッダーを作成する
@@ -174,5 +172,4 @@ def oauth_request(oauth, url, method, params={}, authentification=False, content
             header = _get_oauth_header(oauth, url, method, new_params)
         # header を追加する
         req.add_header('Authorization', header)
-        #print req.headers
     return req

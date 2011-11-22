@@ -213,7 +213,6 @@ class Status(object):
         status.get_created_at_in_jsp()
 
     '''
-
     def __init__(self, 
                  created_at=None, id=None, text=None,
                  source=None, truncated=None, in_reply_to_status_id=None,
@@ -286,6 +285,14 @@ class Status(object):
         '''
 
         return self._create_datetime_obj(self.created_at) + datetime.timedelta(hours=9)
+
+    def __cmp__(self, other):
+        if self.get_created_at_in_jsp() > other.get_created_at_in_jsp():
+            return -1
+        elif self.get_created_at_in_jsp() == other.get_created_at_in_jsp():
+            return 0
+        else:
+            return 1
 
 class User(object):
     '''
